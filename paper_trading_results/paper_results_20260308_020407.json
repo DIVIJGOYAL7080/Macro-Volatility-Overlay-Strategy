@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-03-08T02:04:07.028348",
+  "capital": 99999.40995683956,
+  "portfolio_value": 99999.40995683956,
+  "open_positions": 1,
+  "total_trades": 3,
+  "trade_history": [
+    {
+      "timestamp": "2026-03-08 02:04:05.936847",
+      "action": "OPEN",
+      "position_id": 1,
+      "symbol": "KC=F",
+      "signal": "BUY_CONVEXITY",
+      "premium": 5.882999877929688,
+      "contracts": 1,
+      "margin_used": 0.5882999877929688,
+      "capital_remaining": 99999.4117000122
+    },
+    {
+      "timestamp": "2026-03-08 02:04:06.023423",
+      "action": "OPEN",
+      "position_id": 2,
+      "symbol": "EURUSD=X",
+      "signal": "SELL_PREMIUM",
+      "premium": 0.017431726455688475,
+      "contracts": 1,
+      "margin_used": 0.0017431726455688476,
+      "capital_remaining": 99999.40995683956
+    },
+    {
+      "timestamp": "2026-03-08 02:04:07.028279",
+      "action": "CLOSE",
+      "position_id": 1,
+      "symbol": "KC=F",
+      "signal": "BUY_CONVEXITY",
+      "exit_reason": "STOP_LOSS",
+      "final_pnl": -0.5882999877929688,
+      "capital_remaining": 99999.40995683956
+    }
+  ],
+  "positions": {
+    "1": {
+      "id": 1,
+      "symbol": "KC=F",
+      "signal": "BUY_CONVEXITY",
+      "entry_price": 5.882999877929688,
+      "contracts": 1,
+      "margin_used": 0.5882999877929688,
+      "entry_time": "2026-03-08 02:04:05.936847",
+      "iv_entry": 0.2664449350996336,
+      "rv_entry": 0.35711857128371205,
+      "days_held": 0,
+      "current_pnl": -0.5882999877929688,
+      "status": "CLOSED",
+      "exit_reason": "STOP_LOSS",
+      "exit_time": "2026-03-08 02:04:07.028279"
+    },
+    "2": {
+      "id": 2,
+      "symbol": "EURUSD=X",
+      "signal": "SELL_PREMIUM",
+      "entry_price": 0.017431726455688475,
+      "contracts": 1,
+      "margin_used": 0.0017431726455688476,
+      "entry_time": "2026-03-08 02:04:06.023423",
+      "iv_entry": 0.0921747588597359,
+      "rv_entry": 0.07263050452583877,
+      "days_held": 0,
+      "current_pnl": 0.0,
+      "status": "OPEN"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-03-08T02:04:11.966196",
+  "capital": 99999.55877500915,
+  "portfolio_value": 99999.55877500915,
+  "open_positions": 1,
+  "total_trades": 1,
+  "trade_history": [
+    {
+      "timestamp": "2026-03-08 02:04:10.873897",
+      "action": "OPEN",
+      "position_id": 1,
+      "symbol": "KC=F",
+      "signal": "SELL_PREMIUM",
+      "premium": 4.412249908447265,
+      "contracts": 1,
+      "margin_used": 0.44122499084472655,
+      "capital_remaining": 99999.55877500915
+    }
+  ],
+  "positions": {
+    "1": {
+      "id": 1,
+      "symbol": "KC=F",
+      "signal": "SELL_PREMIUM",
+      "entry_price": 4.412249908447265,
+      "contracts": 1,
+      "margin_used": 0.44122499084472655,
+      "entry_time": "2026-03-08 02:04:10.873897",
+      "iv_entry": 0.44158218258615,
+      "rv_entry": 0.35711857128371205,
+      "days_held": 0,
+      "current_pnl": 0.0,
+      "status": "OPEN"
+    }
+  }
+}
