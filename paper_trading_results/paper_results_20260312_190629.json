@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-03-12T19:06:29.477716",
+  "capital": 99986.61013964844,
+  "portfolio_value": 99986.61013964844,
+  "open_positions": 0,
+  "total_trades": 2,
+  "trade_history": [
+    {
+      "timestamp": "2026-03-12 19:06:28.426912",
+      "action": "OPEN",
+      "position_id": 1,
+      "symbol": "^GSPC",
+      "signal": "BUY_CONVEXITY",
+      "premium": 133.898603515625,
+      "contracts": 1,
+      "margin_used": 13.389860351562502,
+      "capital_remaining": 99986.61013964844
+    },
+    {
+      "timestamp": "2026-03-12 19:06:29.477561",
+      "action": "CLOSE",
+      "position_id": 1,
+      "symbol": "^GSPC",
+      "signal": "BUY_CONVEXITY",
+      "exit_reason": "STOP_LOSS",
+      "final_pnl": -13.389860351562502,
+      "capital_remaining": 99986.61013964844
+    }
+  ],
+  "positions": {
+    "1": {
+      "id": 1,
+      "symbol": "^GSPC",
+      "signal": "BUY_CONVEXITY",
+      "entry_price": 133.898603515625,
+      "contracts": 1,
+      "margin_used": 13.389860351562502,
+      "entry_time": "2026-03-12 19:06:28.426912",
+      "iv_entry": 0.09828229089859268,
+      "rv_entry": 0.12276794024874679,
+      "days_held": 0,
+      "current_pnl": -13.389860351562502,
+      "status": "CLOSED",
+      "exit_reason": "STOP_LOSS",
+      "exit_time": "2026-03-12 19:06:29.477559"
+    }
+  }
+}

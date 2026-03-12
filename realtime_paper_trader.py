@@ -6,6 +6,62 @@ import time
 import json
 import os
 import sys
+from scipy.stats import norm
+
+# ==================== BLACK-SCHOLES FUNCTIONS ====================
+def black_scholes_call(S, K, T, r, sigma):
+    """Calculate Black-Scholes call option price"""
+    if sigma <= 0 or T <= 0:
+        return max(0, S - K)  # Intrinsic value if invalid inputs
+    
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    
+    return S*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)
+
+def black_scholes_put(S, K, T, r, sigma):
+    """Calculate Black-Scholes put option price"""
+    if sigma <= 0 or T <= 0:
+        return max(0, K - S)  # Intrinsic value if invalid inputs
+    
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    
+    return K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+
+def implied_volatility(C_market, S, K, T, r, option_type='call', max_iterations=100, tolerance=1e-6):
+    """Calculate implied volatility using Newton-Raphson method"""
+    sigma = 0.3  # initial guess
+    
+    for i in range(max_iterations):
+        if option_type == 'call':
+            price = black_scholes_call(S, K, T, r, sigma)
+        else:
+            price = black_scholes_put(S, K, T, r, sigma)
+        
+        # Calculate vega
+        d1 = (np.log(S/K)+(r+0.5*sigma**2)*T)/(sigma*np.sqrt(T))
+        vega = S*norm.pdf(d1)*np.sqrt(T)
+        
+        # Avoid division by zero
+        if abs(vega) < tolerance:
+            break
+            
+        # Newton-Raphson update
+        sigma = sigma - (price - C_market)/vega
+        
+        # Check convergence
+        if abs(price - C_market) < tolerance:
+            break
+    
+    return max(sigma, 0.01)  # Ensure positive volatility
+
+def get_market_option_price(S, K, T, r, true_sigma, bid_ask_spread=0.001):
+    """Simulate market option price with noise"""
+    mid_price = black_scholes_call(S, K, T, r, true_sigma)
+    # Add bid-ask spread and small market noise
+    noise = np.random.normal(0, bid_ask_spread * mid_price)
+    return max(mid_price + noise, 0.01)
 
 class RealTimePaperTrader:
     def __init__(self, initial_capital=100000):
@@ -18,12 +74,62 @@ class RealTimePaperTrader:
         # Load strategy parameters
         self.load_strategy_config()
         
+        # Load existing portfolio state if available
+        self.load_portfolio_state()
+        
         # Create results directory
         os.makedirs('paper_trading_results', exist_ok=True)
         
+        # Track last daily save
+        self.last_daily_save = None
+        
         print("🚀 Real-Time Paper Trader Started")
         print("Press Ctrl+C to stop trading")
+        print("💾 Results auto-saved every 5 trades and daily")
+        if len(self.trade_history) > 0:
+            print(f"📊 Loaded existing portfolio: {len(self.trade_history)} trades, ${self.capital:,.2f} capital")
+        else:
+            print("🆕 Starting with fresh portfolio")
         print("="*50)
+    
+    def load_portfolio_state(self):
+        """Load existing portfolio state from file"""
+        state_file = 'paper_trading_results/portfolio_state.json'
+        
+        if os.path.exists(state_file):
+            try:
+                with open(state_file, 'r') as f:
+                    state = json.load(f)
+                
+                self.capital = state.get('capital', self.capital)
+                self.positions = state.get('positions', {})
+                self.trade_history = state.get('trade_history', [])
+                self.last_daily_save = datetime.fromisoformat(state.get('timestamp', datetime.now().isoformat())).date()
+                
+                print(f"📂 Loaded portfolio state from {state_file}")
+                return True
+            except Exception as e:
+                print(f"⚠️  Could not load portfolio state: {e}")
+                return False
+        else:
+            print("📂 No existing portfolio state found, starting fresh")
+            return False
+    
+    def save_portfolio_state(self):
+        """Save current portfolio state to file"""
+        state = {
+            'timestamp': datetime.now().isoformat(),
+            'capital': self.capital,
+            'portfolio_value': self.calculate_portfolio_value(),
+            'open_positions': len([p for p in self.positions.values() if p['status'] == 'OPEN']),
+            'total_trades': len(self.trade_history),
+            'trade_history': self.trade_history,
+            'positions': {k: v for k, v in self.positions.items()}
+        }
+        
+        state_file = 'paper_trading_results/portfolio_state.json'
+        with open(state_file, 'w') as f:
+            json.dump(state, f, indent=2, default=str)
         
     def load_strategy_config(self):
         """Load strategy parameters"""
@@ -113,17 +219,35 @@ class RealTimePaperTrader:
             if rv is None:
                 continue
             
-            # Generate implied volatility
-            iv = rv * np.random.uniform(0.7, 1.4)
+            # Generate realistic market scenario and calculate implied volatility
+            # Simulate "true" volatility with some persistence
+            true_vol = rv * np.random.uniform(0.8, 1.2)  # True volatility with some variation
+            
+            # Generate market option price using true volatility + market noise
+            T = 30/252  # 30 days to expiration
+            r = 0.05     # Risk-free rate
             current_price = data['price']
+            
+            # Get ATM option price from market (simulated)
+            market_call_price = get_market_option_price(current_price, current_price, T, r, true_vol)
+            
+            # Calculate implied volatility from market price
+            iv = implied_volatility(market_call_price, current_price, current_price, T, r, 'call')
             
             # Generate signals
             if iv < rv * self.IV_RV_LONG:
                 signal = 'BUY_CONVEXITY'
-                premium = current_price * 0.02
+                # Calculate straddle premium using Black-Scholes
+                call_price = black_scholes_call(current_price, current_price, T, r, iv)
+                put_price = black_scholes_put(current_price, current_price, T, r, iv)
+                premium = call_price + put_price
             elif iv > rv * self.IV_RV_SHORT:
                 signal = 'SELL_PREMIUM'
-                premium = current_price * 0.015
+                # Calculate iron condor premium using Black-Scholes
+                width = 0.05 * current_price
+                call_otm = black_scholes_call(current_price, current_price + width, T, r, iv)
+                put_otm = black_scholes_put(current_price, current_price - width, T, r, iv)
+                premium = call_otm + put_otm
             else:
                 continue
             
@@ -293,7 +417,11 @@ class RealTimePaperTrader:
         return self.capital + unrealized_pnl
     
     def save_results(self):
-        """Save paper trading results"""
+        """Save paper trading results (only if there are changes)"""
+        # Only save if we have trades or positions
+        if len(self.trade_history) == 0 and len(self.positions) == 0:
+            return  # Don't save empty state files
+        
         results = {
             'timestamp': datetime.now().isoformat(),
             'capital': self.capital,
@@ -304,9 +432,49 @@ class RealTimePaperTrader:
             'positions': {k: v for k, v in self.positions.items()}
         }
         
-        filename = f"paper_trading_results/realtime_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(filename, 'w') as f:
+        # Save with both naming conventions for compatibility
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        realtime_filename = f"paper_trading_results/realtime_results_{timestamp}.json"
+        paper_filename = f"paper_trading_results/paper_results_{timestamp}.json"
+        
+        with open(realtime_filename, 'w') as f:
             json.dump(results, f, indent=2, default=str)
+        with open(paper_filename, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        
+        # Also save as latest for dashboard
+        latest_filename = "paper_trading_results/latest_results.json"
+        with open(latest_filename, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        
+        # Save portfolio state for persistence
+        self.save_portfolio_state()
+    
+    def check_daily_save(self):
+        """Check if we need to save daily results"""
+        today = datetime.now().date()
+        if self.last_daily_save != today:
+            self.save_daily_results()
+            self.last_daily_save = today
+    
+    def save_daily_results(self):
+        """Save daily results with date stamp"""
+        date_str = datetime.now().strftime('%Y%m%d')
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'capital': self.capital,
+            'portfolio_value': self.calculate_portfolio_value(),
+            'open_positions': len([p for p in self.positions.values() if p['status'] == 'OPEN']),
+            'total_trades': len(self.trade_history),
+            'trade_history': self.trade_history,
+            'positions': {k: v for k, v in self.positions.items()}
+        }
+        
+        daily_filename = f"paper_trading_results/daily_results_{date_str}.json"
+        with open(daily_filename, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        
+        print(f"💾 Daily results saved: {daily_filename}")
     
     def print_status(self):
         """Print current trading status"""
@@ -358,6 +526,9 @@ class RealTimePaperTrader:
                 # Save results every 10 minutes
                 if len(self.trade_history) % 5 == 0:
                     self.save_results()
+                
+                # Check if we need to save daily results
+                self.check_daily_save()
                 
                 # Wait for next update
                 print(f"\n⏰ Next update in 60 seconds...")

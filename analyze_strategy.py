@@ -75,8 +75,9 @@ def analyze_strategy():
     
     # Risk metrics
     daily_pnl = trades.groupby('date')['pnl'].sum()
-    volatility = daily_pnl.std() * np.sqrt(252) if len(daily_pnl) > 1 else 0
-    sharpe_ratio = annual_return / volatility if volatility > 0 else 0
+    daily_returns = daily_pnl / 100000  # Convert to daily returns as percentage
+    volatility = daily_returns.std() * np.sqrt(252) if len(daily_returns) > 1 else 0
+    sharpe_ratio = (annual_return / 100) / volatility if volatility > 0 else 0
     
     # Drawdown
     cumulative = trades.groupby('date')['pnl'].sum().cumsum()
@@ -93,7 +94,7 @@ def analyze_strategy():
     print(f"   Annual Return: {annual_return:.1f}%")
     
     print(f"\n⚠️  RISK METRICS")
-    print(f"   Daily Volatility: ${volatility:,.2f}")
+    print(f"   Annual Volatility: {volatility:.2%}")
     print(f"   Sharpe Ratio: {sharpe_ratio:.2f}")
     print(f"   Max Drawdown: {max_drawdown:.1%}")
     

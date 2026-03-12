@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-03-08T01:58:45.371232",
+  "capital": 100000.01162115097,
+  "portfolio_value": 100000.01162115097,
+  "open_positions": 0,
+  "total_trades": 2,
+  "trade_history": [
+    {
+      "timestamp": "2026-03-08 01:58:45.371160",
+      "action": "OPEN",
+      "position_id": 1,
+      "symbol": "EURUSD=X",
+      "signal": "BUY_CONVEXITY",
+      "premium": 0.02324230194091797,
+      "contracts": 1,
+      "margin_used": 0.002324230194091797,
+      "capital_remaining": 99999.9976757698
+    },
+    {
+      "timestamp": "2026-03-08 01:58:45.371217",
+      "action": "CLOSE",
+      "position_id": 1,
+      "symbol": "EURUSD=X",
+      "signal": "BUY_CONVEXITY",
+      "exit_reason": "PROFIT_TARGET",
+      "final_pnl": 0.011621150970458984,
+      "capital_remaining": 100000.01162115097
+    }
+  ],
+  "positions": {
+    "1": {
+      "id": 1,
+      "symbol": "EURUSD=X",
+      "signal": "BUY_CONVEXITY",
+      "entry_price": 0.02324230194091797,
+      "contracts": 1,
+      "margin_used": 0.002324230194091797,
+      "entry_time": "2026-03-08 01:58:45.371160",
+      "iv_entry": 0.05764583960043931,
+      "rv_entry": 0.07263050452583877,
+      "days_held": 0,
+      "current_pnl": 0.011621150970458984,
+      "status": "CLOSED",
+      "exit_reason": "PROFIT_TARGET",
+      "exit_time": "2026-03-08 01:58:45.371216"
+    }
+  }
+}

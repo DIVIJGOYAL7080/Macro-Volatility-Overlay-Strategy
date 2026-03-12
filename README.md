@@ -1,6 +1,6 @@
-# Macro Volatility Overlay Strategy
+# Real-Time Volatility Trading System
 
-A quantitative trading strategy that exploits volatility arbitrage opportunities across multiple asset classes through systematic identification of IV-RV (Implied Volatility vs Realized Volatility) disparities.
+A quantitative trading system that exploits volatility arbitrage opportunities across multiple asset classes through real-time identification of IV-RV (Implied Volatility vs Realized Volatility) disparities.
 
 ## 🤖 AI Development Support
 
@@ -16,7 +16,7 @@ The AI assistance helped transform this from a basic backtest into a production-
 
 ## 🎯 Strategy Overview
 
-The strategy identifies mispriced options and executes market-neutral trades:
+The system continuously monitors markets and executes trades when opportunities arise:
 - **BUY_CONVEXITY**: Purchase straddles when implied volatility is undervalued
 - **SELL_PREMIUM**: Sell iron condors when implied volatility is overvalued
 
@@ -32,7 +32,7 @@ The strategy identifies mispriced options and executes market-neutral trades:
 
 ### 1. Installation
 ```bash
-pip install pandas numpy scipy matplotlib yfinance schedule
+pip install pandas numpy scipy matplotlib yfinance
 ```
 
 ### 2. Download Market Data
@@ -41,23 +41,13 @@ cd data
 python download_data.py
 ```
 
-### 3. Run Backtest
+### 3. Start Real-Time Trading
 ```bash
-python macro_vol_overlay.py
-```
-
-### 4. Paper Trading
-```bash
-# Snapshot trading
-python paper_trader.py
-
-# Continuous trading
 python realtime_paper_trader.py
 ```
 
-### 5. View Results
+### 4. View Analytics
 ```bash
-python analyze_strategy.py
 python dashboard.py
 ```
 
@@ -66,12 +56,10 @@ python dashboard.py
 ```
 macro-volatility-overlay-main/
 ├── README.md                    # This file
-├── macro_vol_overlay.py          # Main strategy implementation
-├── analyze_strategy.py           # Performance analysis
-├── paper_trader.py              # Snapshot paper trading
-├── realtime_paper_trader.py     # Continuous paper trading
-├── dashboard.py                  # Performance dashboard
-├── plot_pnl.py                   # P&L visualization
+├── realtime_paper_trader.py     # Real-time trading system
+├── dashboard.py                 # Performance dashboard
+├── analyze_strategy.py          # Strategy analysis
+├── plot_pnl.py                  # P&L visualization
 ├── data/
 │   ├── download_data.py          # Market data downloader
 │   ├── kc.csv                    # Coffee futures data
@@ -80,7 +68,6 @@ macro-volatility-overlay-main/
 └── results/                      # Generated outputs
     ├── trades.csv
     ├── enhanced_portfolio.csv
-    ├── enhanced_trades.csv
     ├── performance_charts.png
     └── strategy_analysis.png
 ```
@@ -155,17 +142,18 @@ BID_ASK_SLIPPAGE = 0.001           # 0.1% slippage
 | S&P 500 (SPX) | 295 | 58.6% | $4,937 |
 | EUR/USD | 319 | 58.6% | $9,211 |
 
-## 📋 Paper Trading
+## 📋 Real-Time Trading
 
-### Setup
-1. **Download Data**: Run `data/download_data.py`
-2. **Snapshot Trading**: Execute `paper_trader.py` manually every 10 minutes
-3. **Continuous Trading**: Run `realtime_paper_trader.py` for automated trading
+### System Features
+- **Continuous Monitoring**: Real-time market data analysis
+- **Automated Execution**: Instant signal generation and trade execution
+- **Risk Management**: Position limits, margin requirements, profit targets
+- **Performance Tracking**: Live P&L monitoring and analytics
 
 ### Monitoring
 - **Dashboard**: `python dashboard.py`
-- **Results**: Saved in `paper_trading_results/`
-- **Performance**: Track win rate, P&L, drawdown
+- **Results**: Auto-saved in `results/`
+- **Performance**: Track win rate, P&L, drawdown in real-time
 
 ### Expected Live Performance
 - **Annual Return**: 4-7% (50-60% of backtest)
@@ -217,7 +205,6 @@ numpy >= 1.16.5          # Numerical computations
 scipy >= 1.7.0           # Statistical functions
 matplotlib >= 3.3.0     # Visualization
 yfinance >= 0.1.70       # Market data
-schedule >= 1.1.0        # Task scheduling
 ```
 
 ### Data Sources
@@ -230,8 +217,8 @@ schedule >= 1.1.0        # Task scheduling
 ### Environment Setup
 ```bash
 # Virtual environment
-python -m venv vol_strategy
-source vol_strategy/bin/activate
+python -m venv vol_trading
+source vol_trading/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -249,7 +236,7 @@ pip install -r requirements.txt
 ### Monitoring
 - **Logging**: Comprehensive trade and system logs
 - **Alerts**: Email/SMS for significant events
-- **Performance**: Daily/weekly/monthly reports
+- **Performance**: Real-time dashboard updates
 
 ## 📞 Support
 
@@ -264,10 +251,6 @@ pip install -r requirements.txt
 - **Caching**: Store computed volatilities
 - **Batch processing**: Process multiple assets together
 
-## 📄 License
-
-This project is for educational and research purposes. Use at your own risk when deploying with real capital.
-
 ---
 
-**Disclaimer**: This is a simulated trading strategy. Past performance does not guarantee future results. Always conduct thorough testing before deploying with real capital.
+**Disclaimer**: This is a simulated trading system. Past performance does not guarantee future results. Always conduct thorough testing before deploying with real capital.

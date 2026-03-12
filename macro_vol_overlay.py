@@ -16,6 +16,55 @@ import random
 import os
 from datetime import datetime
 
+# ==================== BLACK-SCHOLES FUNCTIONS ====================
+def black_scholes_call(S, K, T, r, sigma):
+    """Calculate Black-Scholes call option price"""
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    
+    return S*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)
+
+def black_scholes_put(S, K, T, r, sigma):
+    """Calculate Black-Scholes put option price"""
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    
+    return K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+
+def implied_volatility(C_market, S, K, T, r, option_type='call', max_iterations=100, tolerance=1e-6):
+    """Calculate implied volatility using Newton-Raphson method"""
+    sigma = 0.3  # initial guess
+    
+    for i in range(max_iterations):
+        if option_type == 'call':
+            price = black_scholes_call(S, K, T, r, sigma)
+        else:
+            price = black_scholes_put(S, K, T, r, sigma)
+        
+        # Calculate vega
+        d1 = (np.log(S/K)+(r+0.5*sigma**2)*T)/(sigma*np.sqrt(T))
+        vega = S*norm.pdf(d1)*np.sqrt(T)
+        
+        # Avoid division by zero
+        if abs(vega) < tolerance:
+            break
+            
+        # Newton-Raphson update
+        sigma = sigma - (price - C_market)/vega
+        
+        # Check convergence
+        if abs(price - C_market) < tolerance:
+            break
+    
+    return max(sigma, 0.01)  # Ensure positive volatility
+
+def get_market_option_price(S, K, T, r, true_sigma, bid_ask_spread=0.001):
+    """Simulate market option price with noise"""
+    mid_price = black_scholes_call(S, K, T, r, true_sigma)
+    # Add bid-ask spread and small market noise
+    noise = np.random.normal(0, bid_ask_spread * mid_price)
+    return max(mid_price + noise, 0.01)
+
 # ==================== CONFIGURATION ====================
 TARGET_NOTIONAL_EUR = 150_000
 EUR_USD = 1.07
@@ -113,24 +162,36 @@ def simulate_asset(df_spot, product, delay=False):
         if np.isnan(rv):
             continue
 
-        # Generate implied volatility with expanded range for both signal types
-        iv = rv * np.random.uniform(0.7, 1.4)
+        # Generate realistic market scenario and calculate implied volatility
+        # Simulate "true" volatility with some persistence and mean reversion
+        true_vol = rv * np.random.uniform(0.8, 1.2)  # True volatility with some variation
+        
+        # Generate market option price using true volatility + market noise
+        T = 30/252  # 30 days to expiration
+        r = 0.05     # Risk-free rate
+        
+        # Get ATM option price from market (simulated)
+        market_call_price = get_market_option_price(spot, spot, T, r, true_vol)
+        
+        # Calculate implied volatility from market price
+        iv = implied_volatility(market_call_price, spot, spot, T, r, 'call')
+        
         signal = None
         
         if iv < rv * IV_RV_LONG:
             signal = 'BUY_CONVEXITY'
             # Long straddle: ATM call + ATM put
-            call = black76_price(spot, spot, 30/252, iv, True)
-            put = black76_price(spot, spot, 30/252, iv, False)
+            call = black_scholes_call(spot, spot, T, r, iv)
+            put = black_scholes_put(spot, spot, T, r, iv)
             premium = call + put
             
         elif iv > rv * IV_RV_SHORT:
             signal = 'SELL_PREMIUM'
             # Iron condor: OTM call spread + OTM put spread
             width = 0.05 * spot
-            sc = black76_price(spot, spot+width, 30/252, iv, True)
-            sp = black76_price(spot, spot-width, 30/252, iv, False)
-            premium = sc + sp
+            call_otm = black_scholes_call(spot, spot + width, T, r, iv)
+            put_otm = black_scholes_put(spot, spot - width, T, r, iv)
+            premium = call_otm + put_otm
 
         if signal:
             contracts = size_in_contracts(product, spot)
@@ -645,63 +706,6 @@ def analyze_results(all_trades, portfolio_df, enhanced_trades_df, portfolio):
         'portfolio': portfolio
     }
 
-# ==================== VISUALIZATION ====================
-def create_visualizations(portfolio_df, enhanced_trades_df):
-    """Create performance visualizations"""
-    try:
-        import matplotlib.pyplot as plt
-        
-        print("\n" + "="*60)
-        print("CREATING VISUALIZATIONS")
-        print("="*60)
-        
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        
-        # Portfolio value
-        axes[0, 0].plot(portfolio_df['date'], portfolio_df['portfolio_value'], linewidth=2)
-        axes[0, 0].set_title('Portfolio Value Over Time', fontsize=12, fontweight='bold')
-        axes[0, 0].set_ylabel('Portfolio Value ($)')
-        axes[0, 0].grid(True, alpha=0.3)
-        
-        # Drawdown
-        rolling_max = portfolio_df['portfolio_value'].expanding().max()
-        drawdown = (portfolio_df['portfolio_value'] - rolling_max) / rolling_max * 100
-        axes[0, 1].fill_between(portfolio_df['date'], 0, drawdown, alpha=0.5, color='red')
-        axes[0, 1].set_title('Portfolio Drawdown', fontsize=12, fontweight='bold')
-        axes[0, 1].set_ylabel('Drawdown (%)')
-        axes[0, 1].grid(True, alpha=0.3)
-        
-        # Daily returns
-        if len(portfolio_df) > 1:
-            daily_returns = portfolio_df['portfolio_value'].pct_change().dropna() * 100
-            axes[1, 0].hist(daily_returns, bins=50, edgecolor='black', alpha=0.7)
-            axes[1, 0].axvline(x=daily_returns.mean(), color='red', linestyle='--', label=f'Mean: {daily_returns.mean():.2f}%')
-            axes[1, 0].set_title('Daily Returns Distribution', fontsize=12, fontweight='bold')
-            axes[1, 0].set_xlabel('Daily Return (%)')
-            axes[1, 0].set_ylabel('Frequency')
-            axes[1, 0].legend()
-            axes[1, 0].grid(True, alpha=0.3)
-        
-        # Trade outcomes by product
-        if not enhanced_trades_df.empty:
-            closed_trades = enhanced_trades_df[enhanced_trades_df['action'] == 'CLOSE']
-            if not closed_trades.empty and 'product' in closed_trades.columns:
-                product_pnl = closed_trades.groupby('product')['final_pnl'].sum()
-                colors = ['green' if pnl > 0 else 'red' for pnl in product_pnl.values]
-                axes[1, 1].bar(product_pnl.index, product_pnl.values, color=colors)
-                axes[1, 1].set_title('Total P&L by Product', fontsize=12, fontweight='bold')
-                axes[1, 1].set_ylabel('Total P&L ($)')
-                axes[1, 1].grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig('/Users/divijgoyal/Desktop/quant shi/macro-volatility-overlay--main/results/performance_charts.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        
-        print("Visualizations saved to /Users/divijgoyal/Desktop/quant shi/macro-volatility-overlay--main/results/performance_charts.png")
-        
-    except ImportError:
-        print("\nNote: Install matplotlib for visualizations: pip install matplotlib")
-
 # ==================== MAIN EXECUTION ====================
 if __name__ == "__main__":
     print("="*60)
@@ -734,9 +738,6 @@ if __name__ == "__main__":
         # Analyze results
         analysis = analyze_results(*results)
         
-        # Create visualizations
-        create_visualizations(analysis['portfolio_df'], analysis['enhanced_trades_df'])
-        
         print("\n" + "="*60)
         print("STRATEGY SUMMARY")
         print("="*60)
@@ -744,7 +745,7 @@ if __name__ == "__main__":
         print("✓ Portfolio management with risk controls")
         print("✓ Realistic execution delays and slippage")
         print("✓ Profit targets, stop losses, and time exits")
-        print("✓ Performance metrics and visualization")
+        print("✓ Performance metrics and analysis")
         
         print(f"\nStrategy Parameters:")
         print(f"  TARGET_NOTIONAL_EUR: €{TARGET_NOTIONAL_EUR:,}")
